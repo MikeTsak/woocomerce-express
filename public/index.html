@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WooCommerce Orders</title>
+    <!-- add favicon ico -->
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="pageContainer">
+        <div class="formContainer">
+            <form id="orderForm" class="form">
+                <div class="formElements">
+                    <label class="label">
+                        Select the store:
+                        <select class="select" id="storeChoice">
+                            <option value="1">Bulgarian</option>
+                            <option value="2">Greece</option>
+                            <option value="3">Romania</option>
+                        </select>
+                    </label>
+                    <label class="label">
+                        Enter the start date:
+                        <input class="input" type="date" id="startDate">
+                    </label>
+                    <label class="label">
+                        Enter the end date:
+                        <input class="input" type="date" id="endDate">
+                    </label>
+                    <label class="label">
+                        Password:
+                        <input class="input" type="password" id="password">
+                    </label>
+                    <button class="button" type="submit"><span>Fetch Orders</span></button>
+                    <div id="loader" style="display: none;">
+                        <div id="loader1">
+                            <div class="ls-particles ls-part-1"></div>
+                            <div class="ls-particles ls-part-2"></div>
+                            <div class="ls-particles ls-part-3"></div>
+                            <div class="ls-particles ls-part-4"></div>
+                            <div class="ls-particles ls-part-5"></div>
+                            <div class="lightsaber ls-left ls-green"></div>
+                            <div class="lightsaber ls-right ls-red"></div>
+                          </div>
+                    </div>                 
+                </div>
+            </form>
+            <button id="downloadCsv" style="display: none;" class="button">Download CSV</button>  
+            <div id="errorAlert" style="display: none;" class="errorAlert"></div>
+        </div>  
+
+        <footer class="footer">
+            <p>&copy; <span id="currentYear"></span> <a href="https://miketsak.gr" target="_blank" rel="noopener noreferrer">miketsak.gr</a></p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Define variables to store state
+        var storeChoice = '1';
+        var startDate = '';
+        var endDate = '';
+        var password = '';
+        var csvData = null;
+        var isLoading = false;
+        var errorAlert = '';
+
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Listen for changes in the store choice and update background
+    document.getElementById('storeChoice').addEventListener('change', function(e) {
+        updateState('storeChoice', e.target.value);
+        updateFormBackground(); // Update the background when the store choice changes
+    });
+    
+        // Function to update the state variables
+        function updateState(key, value) {
+            switch(key) {
+                case 'storeChoice':
+                    storeChoice = value;
+                    break;
+                case 'startDate':
+                    startDate = value;
+                    break;
+                case 'endDate':
+                    endDate = value;
+                    break;
+                case 'password':
+                    password = value;
+                    break;
+                // Add more cases as needed
+            }
+        }
+    
+        // Handle form submission
+        document.getElementById('orderForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            setIsLoading(true);
+    
+            // Make the API request
+            fetch('api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    storeChoice,
+                    startDate,
+                    endDate,
+                    password 
+                }),
+            })
+            .then(function(response) {
+                if (response.status === 401) {
+                    throw new Error('Incorrect password. Please try again.');
+                }
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.headers.get('content-type').includes('text/csv') ? response.text() : response.json();
+            })
+            .then(function(data) {
+                if (typeof data === 'string') {
+                    csvData = data;
+                    document.getElementById('downloadCsv').style.display = 'block';
+                } else {
+                    console.log(data);
+                }
+            })
+            .catch(function(error) {
+                console.error('There was a problem with the fetch operation:', error);
+                errorAlert = 'There was a problem with the fetch operation. Please try again.';
+                // Display the error alert on the page
+            })
+            .finally(function() {
+                setIsLoading(false);
+            });
+        });
+    
+        // Handle CSV download
+        document.getElementById('downloadCsv').addEventListener('click', function() {
+            if (!csvData) return;
+    
+            var blob = new Blob([csvData], { type: 'text/csv' });
+            var fileName = storeChoice + '-' + startDate + '-' + endDate + '-orders.csv';
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        });
+    
+        // Listen for changes in form inputs
+        document.getElementById('storeChoice').addEventListener('change', function(e) {
+            updateState('storeChoice', e.target.value);
+        });
+        document.getElementById('startDate').addEventListener('change', function(e) {
+            updateState('startDate', e.target.value);
+        });
+        document.getElementById('endDate').addEventListener('change', function(e) {
+            updateState('endDate', e.target.value);
+        });
+        document.getElementById('password').addEventListener('change', function(e) {
+            updateState('password', e.target.value);
+        });
+    
+        // Set loading state
+
+        function setIsLoading(loading) {
+            isLoading = loading;
+
+            // Select the submit button and loading indicator elements
+            var submitButton = document.querySelector('#orderForm .button');
+            var loadingIndicator = document.getElementById('loader');
+            var submitButtonText = submitButton.querySelector('span') || submitButton;
+
+            if (isLoading) {
+                // If loading, change button text, disable it, and show the loading indicator
+                submitButtonText.textContent = 'Fetching Orders...';
+                submitButton.disabled = true;
+                loadingIndicator.style.display = 'block';
+            } else {
+                // If not loading, reset button text, enable it, and hide the loading indicator
+                submitButtonText.textContent = 'Fetch Orders';
+                submitButton.disabled = false;
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+
+    </script>
+    
+</body>
+</html>
