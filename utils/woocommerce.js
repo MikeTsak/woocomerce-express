@@ -20,9 +20,10 @@ exports.getWooCommerceApi = (storeChoice) => {
       consumerSecret = process.env.WOO_CONSUMER_SECRET_RO;
       break;
     case '4':
-      url = WOO_STORE_URL_MAISTOR_BG;
-      consumerKey = WOO_CONSUMER_KEY_MAISTOR_BG;
-      consumerSecret = WOO_CONSUMER_SECRET_MAISTOR_BG;
+      url = process.env.WOO_STORE_URL_MAISTOR_BG;
+      consumerKey = process.env.WOO_CONSUMER_KEY_MAISTOR_BG;
+      consumerSecret = process.env.WOO_CONSUMER_SECRET_MAISTOR_BG;
+      break;
     default:
       throw new Error("Invalid store choice");
   }
