@@ -17,10 +17,11 @@
                     <label class="label">
                         Select the store:
                         <select class="select" id="storeChoice">
-                            <option value="1">Bulgarian</option>
-                            <option value="2">Greece</option>
-                            <option value="3">Romania</option>
-                            <option value="4">Maistor Bg</option>
+                            <option value="1">Episkevi BG</option>
+                            <option value="2">Episkevi GR</option>
+                            <option value="3">Episkevi RO</option>
+                            <option value="4">Maistor Shape</option>
+                            <option value="5">Maistor Compact</option>
                         </select>
                     </label>
                     <label class="label">
@@ -143,13 +144,17 @@
     
         // Handle CSV download
         document.getElementById('downloadCsv').addEventListener('click', function() {
-            if (!csvData) return;
-    
+            if (!csvData) {
+                console.error('No CSV data available for download.');
+                return;
+            }
+
+            console.log('Downloading CSV data:', csvData); // Add this line for debugging
+
             var blob = new Blob([csvData], { type: 'text/csv' });
             var fileName = storeChoice + '-' + startDate + '-' + endDate + '-orders.csv';
             var url = window.URL.createObjectURL(blob);
             var a = document.createElement('a');
-            a.style.display = 'none';
             a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
@@ -157,6 +162,7 @@
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
         });
+
     
         // Listen for changes in form inputs
         document.getElementById('storeChoice').addEventListener('change', function(e) {

@@ -24,7 +24,7 @@ app.post('/api/orders', async (req, res) => {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  const api = getWooCommerceApi(storeChoice);
+  const { api, productIDs } = getWooCommerceApi(storeChoice);
 
   try {
     const apiResponse = await api.get("orders", {
@@ -33,27 +33,52 @@ app.post('/api/orders', async (req, res) => {
       per_page: 100
     });
 
-    const processedOrders = apiResponse.data.map(order => ({
-      Name: `${order.billing.first_name} ${order.billing.last_name}`,
-      PostalCode: order.billing.postcode,
-      City: order.billing.city,
-      Address: order.billing.address_1,
-      Phone: order.billing.phone,
-      Quantity: order.line_items.reduce((total, item) => total + item.quantity, 0),
-      Total: order.total,
-      OrderDate: order.date_created,
-      Email: order.billing.email || '-',
-      PaymentMethod: order.payment_method_title
-    }));
+    console.log("API response:", apiResponse.data[0].line_items[0].product_id);
 
+    const processedOrders = apiResponse.data.reduce((acc, order) => {
+      // Filter line items by the specified productID
+      const filteredItems = order.line_items.filter(item => productIDs.includes(item.product_id.toString()));
+
+      // If the order contains relevant line items, process and add it to the accumulator
+      if (filteredItems.length > 0) {
+        // Calculate the total quantity of relevant items
+        const totalQuantity = filteredItems.reduce((total, item) => total + item.quantity, 0);
+
+        // Optionally, calculate the total value of relevant items
+        // This might require additional info depending on how you want to calculate it
+
+        acc.push({
+          Name: `${order.billing.first_name} ${order.billing.last_name}`,
+          PostalCode: order.billing.postcode,
+          City: order.billing.city,
+          Address: order.billing.address_1,
+          Phone: order.billing.phone,
+          Quantity: totalQuantity,
+          // If you have the item's price, you can calculate the total price of filteredItems here
+          // Total: calculateTotal(filteredItems),
+          Total: order.total, // Or use the total from the order if appropriate
+          OrderDate: order.date_created,
+          Email: order.billing.email || '-',
+          PaymentMethod: order.payment_method_title,
+          ProductId: filteredItems[0].product_id,
+        });
+      }
+
+      return acc;
+    }, []);
+
+    // Generate the CSV file from the processed orders
     const csv = Papa.unparse(processedOrders, {
       header: true
     });
 
+    // Set headers to download the file as a CSV
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
+    // Send the generated CSV
     res.status(200).send(csv);
   } catch (error) {
+    // Error handling remains the same
     console.error("Error during API call:", error);
     res.status(500).json({
       message: "Server encountered an error",
