@@ -3,6 +3,7 @@ const WooCommerceRestApi = require("@woocommerce/woocommerce-rest-api").default;
 exports.getWooCommerceApi = (storeChoice) => {
   let url, consumerKey, consumerSecret;
   let productIDs;
+  console.log('storeChoice', storeChoice, " - Mike you maybe forgot to add 'brack' in the case!");
 
   switch (storeChoice) {
     case '1':
@@ -34,6 +35,12 @@ exports.getWooCommerceApi = (storeChoice) => {
       consumerKey = process.env.WOO_CONSUMER_KEY_MAISTOR_BG;
       consumerSecret = process.env.WOO_CONSUMER_SECRET_MAISTOR_BG;
       productIDs = ['1691', '1693'];
+      break;
+    case '6':
+      url = process.env.WOO_STORE_URL_GRIPHOLD;
+      consumerKey = process.env.WOO_CONSUMER_KEY_GRIPHOLD;
+      consumerSecret = process.env.WOO_CONSUMER_SECRET_GRIPHOLD;
+      productIDs = ['502', '397', '396', '395', '393', '392'];
       break;
     default:
       throw new Error("Invalid store choice");
