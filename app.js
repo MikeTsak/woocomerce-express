@@ -33,7 +33,7 @@ app.post('/api/orders', async (req, res) => {
       per_page: 100
     });
 
-    console.log("API response:", apiResponse.data[0].line_items[0].product_id);
+    console.log("API response:", apiResponse.data[0].billing.phone);
 
     const processedOrders = apiResponse.data.reduce((acc, order) => {
       // Filter line items by the specified productID
@@ -52,6 +52,7 @@ app.post('/api/orders', async (req, res) => {
           PostalCode: order.billing.postcode,
           City: order.billing.city,
           Address: order.billing.address_1,
+          DeliveryMethod: order.shipping_lines[0].method_title,
           Phone: order.billing.phone,
           Quantity: totalQuantity,
           // If you have the item's price, you can calculate the total price of filteredItems here
