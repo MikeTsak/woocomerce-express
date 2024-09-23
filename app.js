@@ -89,6 +89,10 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
+app.get('/test', (req, res) => {
+  res.send('Hello, this is the test route!');
+});
+
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });

@@ -42,6 +42,12 @@ exports.getWooCommerceApi = (storeChoice) => {
       consumerSecret = process.env.WOO_CONSUMER_SECRET_GRIPHOLD;
       productIDs = ['502', '397', '396', '395', '393', '392'];
       break;
+    case '7':
+      url = process.env.WOO_STORE_URL_DPSI_BG;
+      consumerKey = process.env.WOO_CONSUMER_KEY_DPSI_BG;
+      consumerSecret = process.env.WOO_CONSUMER_SECRET_DPSI_BG;
+      productIDs = ['1236'];
+      break;
     default:
       throw new Error("Invalid store choice");
   }
