@@ -33,53 +33,59 @@ app.post('/api/orders', async (req, res) => {
       per_page: 100
     });
 
-    console.log("API response:", apiResponse.data[0].billing.phone);
+    // Commenting out logs
+    // if (apiResponse.data.length > 0) {
+    //   console.log("First Order:", apiResponse.data[0]);
+    //   console.log("Order Keys:", Object.keys(apiResponse.data[0]));
+    // } else {
+    //   console.log("No orders found for the given date range.");
+    // }
 
-    const processedOrders = apiResponse.data.reduce((acc, order) => {
-      // Filter line items by the specified productID
-      const filteredItems = order.line_items.filter(item => productIDs.includes(item.product_id.toString()));
+    const processedOrders = apiResponse.data.map(order => {
+      // Group SKUs together in an object { SKU: Quantity }
+      const skuQuantities = {};
 
-      // If the order contains relevant line items, process and add it to the accumulator
-      if (filteredItems.length > 0) {
-        // Calculate the total quantity of relevant items
-        const totalQuantity = filteredItems.reduce((total, item) => total + item.quantity, 0);
+      order.line_items.forEach(item => {
+        const sku = item.sku || `Product-${item.product_id}`;
+        if (skuQuantities[sku]) {
+          skuQuantities[sku] += item.quantity;
+        } else {
+          skuQuantities[sku] = item.quantity;
+        }
+      });
 
-        // Optionally, calculate the total value of relevant items
-        // This might require additional info depending on how you want to calculate it
+      // Convert SKU object into a formatted string for CSV
+      const skuFormatted = Object.entries(skuQuantities)
+        .map(([sku, qty]) => `${sku} x${qty}`)
+        .join(", ");
 
-        acc.push({
-          Name: `${order.billing.first_name} ${order.billing.last_name}`,
-          PostalCode: order.billing.postcode,
-          City: order.billing.city,
-          Address: order.billing.address_1,
-          // DeliveryMethod: order.shipping_lines[0].method_title,
-          Phone: order.billing.phone,
-          Quantity: totalQuantity,
-          // If you have the item's price, you can calculate the total price of filteredItems here
-          // Total: calculateTotal(filteredItems),
-          Total: order.total, // Or use the total from the order if appropriate
-          OrderDate: order.date_created,
-          Email: order.billing.email || '-',
-          PaymentMethod: order.payment_method_title,
-          ProductId: filteredItems[0].product_id,
-        });
-      }
+      // Sum total quantity of products in this order
+      const totalQuantity = Object.values(skuQuantities).reduce((sum, qty) => sum + qty, 0);
 
-      return acc;
-    }, []);
+      return {
+        Name: `${order.billing.first_name} ${order.billing.last_name}`,
+        PostalCode: order.billing.postcode,
+        City: order.billing.city,
+        Address: order.billing.address_1,
+        Phone: order.billing.phone,
+        Quantity: totalQuantity,
+        Total: order.total,
+        OrderDate: order.date_created,
+        Email: order.billing.email || '-',
+        PaymentMethod: order.payment_method_title,
+        ProductId: order.line_items.map(item => item.product_id).join(", "), // Multiple product IDs
+        SKUs: skuFormatted // Consolidated SKU information
+      };
+    });
 
-    // Generate the CSV file from the processed orders
     const csv = Papa.unparse(processedOrders, {
       header: true
     });
 
-    // Set headers to download the file as a CSV
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
-    // Send the generated CSV
     res.status(200).send(csv);
   } catch (error) {
-    // Error handling remains the same
     console.error("Error during API call:", error);
     res.status(500).json({
       message: "Server encountered an error",
